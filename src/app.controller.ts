@@ -8,7 +8,7 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   // A cette url qui correspond à la racine éxécutes getHello()
-  @Get()
+  @Get('hello')
   getHello(): string {
     // retourne le contenu de la methode getHello du appService
     return this.appService.getHello();
