@@ -1,4 +1,6 @@
 import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, Query } from '@nestjs/common';
+import { AddTodoDto } from './dto/add-todo.dto';
+import { GetPaginatedTodoDto } from './dto/get-paginated-todo.dto';
 import { TodoEntity } from './entities/todo.entity';
 
 @Controller('todo') // Prefix de routage pour l'ensemble des routes du controller
@@ -12,7 +14,10 @@ export class TodoController {
 
     // Récupération de toutes les todos
     @Get() // On peut définir dans chaque décorateur un pattern de routage
-    getTodos(){
+    getTodos(
+        @Query() mesQueryParams: GetPaginatedTodoDto
+    ){
+        console.log(mesQueryParams);
         return this.todos;
     }
 
@@ -32,19 +37,23 @@ export class TodoController {
     @Post()
     addTodo(
         // @Body va parser le contenu de l'objet Request et ne récupérer que le body
-        @Body() newTodo: TodoEntity
+        @Body() newTodo: AddTodoDto
     ){
+        const todo = new TodoEntity;
+        const {title, description} = newTodo;
+        todo.title = title;
+        todo.description = description;
         // Si il y a des todos dans le tableau de todos != 0
         if (this.todos.length) {
             // J'affecte je récupère le dernier élément de mon tableau todos et j'incrémente id de 1
-            newTodo.id = this.todos[this.todos.length - 1].id + 1;
+            todo.id = this.todos[this.todos.length - 1].id + 1;
         } else {
             // Sinon il n'y a pas de todos id = 1
-            newTodo.id = 1;
+            todo.id = 1;
         }
         // Je push mon todo dans le tableau de todos
-        this.todos.push(newTodo);
-        return newTodo;
+        this.todos.push(todo);
+        return todo;
     }
 
     // Supprimer une todo
@@ -71,7 +80,7 @@ export class TodoController {
     @Put(':id')
     updateTodo(
         @Param('id') id,
-        @Body() uptodo: Partial<TodoEntity>
+        @Body() uptodo: Partial<AddTodoDto>
     ){
         // Chercher l'objet via son id dans le tableau des todos
         const todo = this.getTodoById(id);
