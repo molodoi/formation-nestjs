@@ -1,15 +1,16 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpStatus, NotFoundException, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
 import { AddTodoDto } from './dto/add-todo.dto';
 import { GetPaginatedTodoDto } from './dto/get-paginated-todo.dto';
 import { TodoEntity } from './entities/todo.entity';
+import { TodoService } from './services/todo/todo.service';
 
 @Controller('todo') // Prefix de routage pour l'ensemble des routes du controller
 export class TodoController {
-    
-    todos: TodoEntity[];
-
-    constructor(){
-        this.todos = [];    
+  
+    // On injecte notre service dans le controller 
+    constructor(
+        private todoService : TodoService
+    ){  
     }
 
     // Récupération de toutes les todos
@@ -18,19 +19,19 @@ export class TodoController {
         @Query() mesQueryParams: GetPaginatedTodoDto
     ){
         console.log(mesQueryParams);
-        return this.todos;
+        return this.todoService.getTodos();
     }
 
     // Récupérer une todo via son id
     @Get(':id')
     getTodoById(
-        @Param('id') id
-    ){
-        // On va récupérer notre todo par rapport à l'id transmis en paramètre
-        const todo = this.todos.find((actualTodo) => actualTodo.id === +id);
-        if (todo)
-            return todo;
-        throw new NotFoundException(`Le todo d'id ${id} n'existe pas`);
+        @Param('id', new ParseIntPipe(
+        {
+            errorHttpStatusCode: HttpStatus.NOT_FOUND
+        }
+        )) id
+    ){        
+        return this.todoService.getTodoById(id);
     }
 
     // Ajouter une todo
@@ -39,54 +40,24 @@ export class TodoController {
         // @Body va parser le contenu de l'objet Request et ne récupérer que le body
         @Body() newTodo: AddTodoDto
     ){
-        const todo = new TodoEntity;
-        const {title, description} = newTodo;
-        todo.title = title;
-        todo.description = description;
-        // Si il y a des todos dans le tableau de todos != 0
-        if (this.todos.length) {
-            // J'affecte je récupère le dernier élément de mon tableau todos et j'incrémente id de 1
-            todo.id = this.todos[this.todos.length - 1].id + 1;
-        } else {
-            // Sinon il n'y a pas de todos id = 1
-            todo.id = 1;
-        }
-        // Je push mon todo dans le tableau de todos
-        this.todos.push(todo);
-        return todo;
+        return this.todoService.addTodo(newTodo);   
     }
 
     // Supprimer une todo
     @Delete(':id')
     deleteTodo(
-        @Param('id') id
+        @Param('id', ParseIntPipe) id
     ){
-        // Chercher l'objet via son id dans le tableau des todos
-        const index = this.todos.findIndex((todo:TodoEntity) => todo.id === +id);
-        // Utiliser la methode slice() pour supprimer le todo s'il existe
-        if(index >= 0){
-            this.todos.splice(index, 1);
-        }else{
-            throw new NotFoundException(`Le todo d'id ${id} n'existe pas`);
-        }
-
-        return {
-            message: `Le todo d'id ${id} a été supprimé`,
-            count: 1
-        };
+        return this.todoService.deleteTodo(id);
     }
 
     // Mettre à jour une todo
     @Put(':id')
     updateTodo(
-        @Param('id') id,
+        @Param('id', ParseIntPipe) id,
         @Body() uptodo: Partial<AddTodoDto>
     ){
-        // Chercher l'objet via son id dans le tableau des todos
-        const todo = this.getTodoById(id);
-        todo.title = uptodo.title ? uptodo.title : todo.title;
-        todo.description = uptodo.description ? uptodo.description : todo.description;
-        return todo;
+        return this.todoService.updateTodo(id, uptodo);
     }
 
 }
